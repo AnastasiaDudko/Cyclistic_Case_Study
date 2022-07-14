@@ -1,0 +1,520 @@
+---
+title: "Data Analysis"
+author: "Anastasia Dudko"
+date: "08 07 2022"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+# Data Analysis
+
+
+## 1 Set working derectory, envronment & load cleaned dataset
+```{r eval=FALSE}
+#Setting working derectory
+setwd("C:/Users/Asus/Desktop/Case Study 1/Cyclistic trip data/R")
+
+#Setting the environment
+library(lubridate)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+install.packages("showtext")
+library(showtext)    # gives an access to a new font
+library(data.table)
+library(viridis)     # contains color schemes
+library(ggpubr)
+library(ggthemes)    # has a clean theme for ggplot2
+
+#Importing the cleaned dataset
+Total_cleaned <- read.csv("Total_cleaned.csv")
+
+# Add a new font that will be used in the all graphics
+font_add("Playfair", "C:/Users/Asus/Desktop/Case Study 1/Cyclistic trip data/R/PlayfairDisplay-Italic.ttf")
+showtext_auto()
+```
+
+## 2 Summary statistics
+```{r eval=FALSE}
+# Creating function for mode
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+# Create a data frame with statistical values
+statistics <- Total_cleaned %>%
+  
+  group_by(
+    member_casual
+  ) %>%
+  
+  summarize(
+    ave_ride_length_mins = (mean(ride_length, na.rm = TRUE))/60,
+    mode_ride_length_mins = format((getmode(ride_length)/60)),
+    mode_day_of_week = getmode(day_of_week),
+    mode_month = getmode(month),
+    mode_time_of_day = getmode(hour), 
+    mode_bike_type = getmode(rideable_type),
+  ) 
+```
+```{r}
+kable(head(statistics))
+```
+
+
+## 3 Average ride time per day of the week
+```{r}
+#Create a data frame with average ride time per day of the week
+ave_t_day <- Total_cleaned %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, day_of_week) 
+
+# Change data type of some columns
+ave_t_day$average_duration <- as.numeric(ave_t_day$average_duration)
+ave_t_day$day_of_week <- as.character(ave_t_day$day_of_week)
+
+# Create the plot
+plt1 <- ggplot(ave_t_day)+
+  # Make custom panel grid
+  geom_hline(
+    aes(yintercept = y), 
+    data.frame(y = c(0:3) * 480),
+    color = "lightgrey"
+  ) +
+  # Adding bars
+  geom_col(
+    aes(
+      x = day_of_week,
+      y = average_duration,
+      fill = member_casual
+    ),
+    alpha = .9,
+    position = "dodge"
+  ) +
+  #Annotate custom scaling inside plot 
+  #Creating a white element that will allow other labels to be seen
+  annotate(
+    x = 7.8,
+    y = 0,
+    label = "8'",
+    geom = "text",
+    color = "white",
+  ) +
+  annotate(
+    x = 7.6,
+    y = 520,
+    label = "8'",
+    geom = "text",
+    color = "gray11",
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 7.6,
+    y = 1020,
+    label = "16'",
+    geom = "text",
+    color = "gray11",
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 7.6,
+    y = 1520,
+    label = "24'",
+    geom = "text",
+    color = "gray11",
+    family = "Playfair"
+  ) +
+  theme(
+    # Remove axis ticks and text
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    # Use gray text for hour labels
+    axis.text.x = element_text(color = "gray12"),
+    # Move the legend to the bottom
+    legend.position = "bottom",
+    legend.title = element_blank(),
+  ) +
+  scale_fill_hue(
+    labels = c("Casual Riders", "Member Riders"),
+  ) +
+  theme(
+    # Remove extra grid lines and make the background white
+    panel.background = element_rect(fill = "white", color = "white"),
+    panel.grid = element_blank(),
+    panel.grid.major.x = element_blank(),
+    # Set default color and font family for the text
+    text = element_text(color="gray12", family = "Playfair"),
+    plot.title = element_text(size = 18)
+  ) +
+  labs(title = "Average ride time per day of the week") +
+  scale_x_discrete(labels = c("Sunday","Monday",
+                              "Tuesday","Wednesday",
+                              "Thursday","Friday","Saturday"))
+```
+
+```{r}
+plt1
+```
+
+## 4 Number of trips per hour
+```{r eval=FALSE}
+# Creating a dataset containing number of trips per hour
+circular_bar_chart_data <- Total_cleaned%>%
+  
+  group_by(
+    hour,
+    member_casual
+  ) %>%
+  
+  mutate(
+    numtrips_0000s = (n()/1000)
+  ) %>%
+  
+  distinct(
+    hour, 
+    member_casual, 
+    numtrips_0000s
+  )
+
+#Adding an "h" for "hour" for labels
+circular_bar_chart_data$hour <- paste0(circular_bar_chart_data$hour, "h")
+
+# Making plot
+plt2 <- ggplot(circular_bar_chart_data) +
+  # Make custom panel grid
+  geom_hline(
+    aes(yintercept = y), 
+    data.frame(y = c(0:3) * 150),
+    color = "lightgrey"
+  ) +
+  # Adding bars
+  geom_col(
+    aes(
+      x = hour,
+      y = numtrips_0000s,
+      fill = member_casual
+    ), alpha = .9
+  ) +
+  # Lollipop shaft for each bar
+  geom_segment(
+    aes(
+      x = hour,
+      y = 0,
+      xend = hour,
+      yend = 450
+    ),
+    linetype = "dashed",
+    color = "gray10"
+  ) +
+  # Make it circular 
+  coord_polar(start = -0.135, direction = 1) +
+  # Annotate custom scaling inside plot 
+  annotate(
+    x = 1.5,
+    y = 180,
+    label = "150",
+    geom = "text",
+    color = "gray11",
+    angle = -6,
+    size = 3,
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 1.5,
+    y = 330,
+    label = "300",
+    geom = "text",
+    color = "gray11",
+    angle = -6,
+    size = 3,
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 1.5,
+    y = 480,
+    label = "450 rides",
+    geom = "text",
+    color = "gray11",
+    angle = -6,
+    size = 3,
+    family = "Playfair"
+  ) +
+  # Scale y axis so bars don't start in the center
+  scale_y_continuous(
+    limits = c(-250, 550),
+    expand = c(0,0),
+    breaks = c(0, 150, 300, 450)
+  ) +
+  theme(
+    # Remove axis ticks and text
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    # Use gray text for hour labels
+    axis.text.x = element_text(color = "gray12"),
+    # Move the legend to the bottom
+    legend.position = "bottom",
+    legend.title = element_blank()
+  ) +
+  scale_fill_hue(
+    labels = c("Casual Riders", "Member Riders"),
+    ) +
+  theme(
+    # Remove extra grid lines and make the background white
+    panel.background = element_rect(fill = "white", color = "white"),
+    panel.grid = element_blank(),
+    panel.grid.major.x = element_blank(),
+    # Set default color and font family for the text
+    text = element_text(color="gray12", family = "Playfair"),
+    legend.text = element_text(size = 7)
+    ) 
+```
+```{r}
+plt2  
+```
+
+
+## 5.a Number of rides by date
+```{r eval=FALSE}
+
+# Change started_at string type 
+Total_cleaned$started_at <- as.POSIXct(
+  Total_cleaned$started_at, 
+  format = "%Y-%m-%d %H:%M:%S"
+)
+
+#Create a week column
+Total_cleaned$week <- format(
+  Total_cleaned$started_at,
+  "%W"
+)
+
+##Create data frame containing the number of rides by date 
+heatmap_data <- Total_cleaned %>%
+  
+  select(
+    date, 
+    day_of_week, 
+    week, 
+    year
+  ) %>%
+  
+  group_by(
+    date
+  ) %>%
+  
+  mutate(
+    numtrips = n()
+  ) %>%
+  
+  distinct(
+    date, 
+    .keep_all = TRUE
+  )
+
+# Change data type of some columns
+heatmap_data$week <- as.numeric(heatmap_data$week)
+heatmap_data$day_of_week <- as.character(heatmap_data$day_of_week)
+
+# Create a heat map 
+plt3 <- ggplot(heatmap_data, aes(x = week, y = day_of_week, fill = numtrips)) +
+  geom_tile(color="white", size=0.1) +
+ # Square tiles
+  coord_fixed() +
+ # Separate the heat maps by year
+  facet_wrap(
+    "year", 
+    ncol = 1
+  ) +
+  # Set the light theme 
+  theme_light() +
+  
+  # Remove any unnecessary labels 
+  theme(
+    axis.title = element_blank()
+  ) + 
+  # Chose a color palette
+  scale_fill_viridis(option = "E", name="Number of rides") + 
+
+# Reverse the y-axis so that the weekdays read vertically  
+  scale_y_discrete(limits = rev,
+      labels = c("Saturday","Friday","Thursday","Wednesday","Tuesday","Monday","Sunday")) +
+
+  #Add x-axis labels to show the months of the year
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(1, 52, length = 12),
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  
+  labs(title="Number of rides per day")+
+  theme(axis.ticks=element_blank()) +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(family = "Playfair"))+
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(strip.text = element_text(colour = "gray12")) +
+  guides(
+    fill = guide_colourbar(
+      barwidth = 7,
+      barheight = 0.7, title.position = "top",title.hjust = .5,))
+```
+```{r}
+plt3
+```
+
+
+## 5.b Number of rides by date (Members vs Casuals)
+```{r eval=FALSE}
+#Creating a dataset containing only Members' rides
+Total_cleaned_members <- Total_cleaned[Total_cleaned$member_casual == "member",]
+
+#Creating a dataset containing only Casuals' rides
+Total_cleaned_casuals <- Total_cleaned[Total_cleaned$member_casual == "casual",]
+
+##Create dataset for Members 
+heatmap_data_m <- Total_cleaned_members %>%
+  
+  select(
+    date, 
+    day_of_week, 
+    week, 
+    year
+  ) %>%
+  
+  group_by(
+    date
+  ) %>%
+  
+  mutate(
+    numtrips = n()
+  ) %>%
+  
+  distinct(
+    date, 
+    .keep_all = TRUE
+  )
+# Change data type 
+heatmap_data_m$week <- as.numeric(heatmap_data_m$week)
+heatmap_data_m$day_of_week <- as.character(heatmap_data_m$day_of_week)
+
+##Create dataset for Casuals
+heatmap_data_c <- Total_cleaned_casuals %>%
+  
+  select(
+    date, 
+    day_of_week, 
+    week, 
+    year
+  ) %>%
+  
+  group_by(
+    date
+  ) %>%
+  
+  mutate(
+    numtrips = n()
+  ) %>%
+  
+  distinct(
+    date, 
+    .keep_all = TRUE
+  )
+# Change data type
+heatmap_data_c$week <- as.numeric(heatmap_data_c$week)
+heatmap_data_c$day_of_week <- as.character(heatmap_data_c$day_of_week)
+
+# Create a heat map for Members 
+p_m <- ggplot(heatmap_data_m, aes(x = week, y = day_of_week, fill = numtrips)) +
+  geom_tile(color="white", size=0.1) +
+  coord_fixed() +
+  facet_wrap(
+    "year", 
+    ncol = 1
+  ) +
+  theme_light() +
+  theme(
+    axis.title = element_blank()
+  ) + 
+  scale_fill_viridis(option = "E",name="Number of rides") + 
+  scale_y_discrete(limits = rev,
+                   labels = c("Saturday","Friday","Thursday","Wednesday","Tuesday","Monday","Sunday")) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(1, 52, length = 12),
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(title="Member Riders")+
+  theme(axis.ticks=element_blank()) +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(family = "Playfair"))+
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(strip.text = element_text(colour = "gray12")) +
+  guides(
+    fill = guide_colourbar(
+      barwidth = 3.5,
+      barheight = 0.35, title.position = "top",title.hjust = .5,))
+
+# Create a heat map for Casuals 
+p_c <- ggplot(heatmap_data_c, aes(x = week, y = day_of_week, fill = numtrips)) +
+  geom_tile(color="white", size=0.1) +
+  coord_fixed() +
+  facet_wrap(
+    "year", 
+    ncol = 1
+  ) +
+  theme_light() +
+  theme(
+    axis.title = element_blank()
+  ) + 
+  scale_fill_viridis(option = "E", name="Number of rides") + 
+  scale_y_discrete(limits = rev,
+                   labels = c("Saturday","Friday","Thursday","Wednesday","Tuesday","Monday","Sunday")) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(1, 52, length = 12),
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  
+  labs(title="Casual Riders")+
+  theme(axis.ticks=element_blank()) +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(family = "Playfair"))+
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(strip.text = element_text(colour = "gray12")) +
+  guides(
+    fill = guide_colourbar(
+      barwidth = 3.5,
+      barheight = 0.35, title.position = "top",title.hjust = .5,))
+
+
+
+# Combine the two heat maps into one 
+plt4 <- ggarrange(
+  p_m, 
+  p_c, 
+  ncol = 1, 
+  nrow = 2,
+  common.legend = TRUE, 
+  legend = "bottom"
+) 
+```
+```{r}
+plt4
+```
+
+
+
+
+
+
+
+
+
+

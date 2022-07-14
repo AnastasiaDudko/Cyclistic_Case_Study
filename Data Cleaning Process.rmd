@@ -1,0 +1,239 @@
+---
+title: "Data Cleaning Process"
+author: "Anastasia Dudko"
+date: "06 07 2022"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+# Cleaning Data Process
+
+
+
+## 1. Document Description
+
+This document presents the description of all of the steps taken to clean the raw datasets in order to prepare it for the further analysis. In this study, the data collected within the last 12 months (from June 2021 to May 2022) is used; every month's observations are contained in a separate csv. file. 
+
+## 2.Combine datasets
+### 2.1 Set working derectory, envronment & load row data
+```{r eval=FALSE}
+#Setting working derectory
+setwd("C:/Users/Asus/Desktop/Case Study 1/Cyclistic trip data")
+
+#Setting the environment
+library(lubridate)
+library(tidyverse)
+library(dplyr)
+
+#Importing row data
+June_2021 <- read.csv("202106-divvy-tripdata.csv")
+July_2021 <- read.csv("202107-divvy-tripdata.csv")
+Aug_2021 <- read.csv("202108-divvy-tripdata.csv")
+Sept_2021 <- read.csv("202109-divvy-tripdata.csv")
+Oct_2021 <- read.csv("202110-divvy-tripdata.csv")
+Nov_2021 <- read.csv("202111-divvy-tripdata.csv")
+Dec_2021 <- read.csv("202112-divvy-tripdata.csv")
+Jan_2022 <- read.csv("202201-divvy-tripdata.csv")
+Feb_2022 <- read.csv("202202-divvy-tripdata.csv")
+Mar_2022 <- read.csv("202203-divvy-tripdata.csv")
+Apr_2022 <- read.csv("202204-divvy-tripdata.csv")
+May_2022 <- read.csv("202205-divvy-tripdata.csv")
+```
+### 2.2 Check data structure
+Getting familiar with the data. Checking the structure summary in order to see if each dataset has the same column names and data types.
+```{r eval=FALSE}
+glimpse(June_2021)
+glimpse(July_2021)
+glimpse(Aug_2021)
+glimpse(Sept_2021) 
+glimpse(Oct_2021) 
+glimpse(Nov_2021) 
+glimpse(Dec_2021) 
+glimpse(Jan_2022) 
+glimpse(Feb_2022) 
+glimpse(Mar_2022) 
+glimpse(Apr_2022) 
+glimpse(May_2022) 
+```
+### 2.3 Change data type
+Changing data type of ended_at and started_at columns for date/time.
+```{r eval=FALSE}
+June_2021$ended_at <- as.POSIXct(June_2021_df$ended_at)
+June_2021$started_at <- as.POSIXct(June_2021_df$started_at)
+
+July_2021$ended_at <- as.POSIXct(July_2021_df$ended_at)
+July_2021$started_at <- as.POSIXct(July_2021_df$started_at)
+
+Aug_2021$ended_at <- as.POSIXct(Aug_2021_df$ended_at)
+Aug_2021$started_at <- as.POSIXct(Aug_2021_df$started_at)
+
+Sept_2021$ended_at <- as.POSIXct(Sept_2021_df$ended_at)
+Sept_2021$started_at <- as.POSIXct(Sept_2021_df$started_at)
+
+Oct_2021$ended_at <- as.POSIXct(Oct_2021_df$ended_at)
+Oct_2021$started_at <- as.POSIXct(Oct_2021_df$started_at)
+
+Nov_2021$ended_at <- as.POSIXct(Nov_2021_df$ended_at)
+Nov_2021$started_at <- as.POSIXct(Nov_2021_df$started_at)
+
+Dec_2021$ended_at <- as.POSIXct(Dec_2021_df$ended_at)
+Dec_2021$started_at <- as.POSIXct(Dec_2021_df$started_at)
+
+Jan_2022$ended_at <- as.POSIXct(Jan_2022_df$ended_at)
+Jan_2022$started_at <- as.POSIXct(Jan_2022_df$started_at)
+
+Feb_2022$ended_at <- as.POSIXct(Feb_2022_df$ended_at)
+Feb_2022$started_at <- as.POSIXct(Feb_2022_df$started_at)
+
+Mar_2022$ended_at <- as.POSIXct(Mar_2022_df$ended_at)
+Mar_2022$started_at <- as.POSIXct(Mar_2022_df$started_at)
+
+Apr_2022$ended_at <- as.POSIXct(Apr_2022_df$ended_at)
+Apr_2022$started_at <- as.POSIXct(Apr_2022_df$started_at)
+
+May_2022$ended_at <- as.POSIXct(May_2022_df$ended_at)
+May_2022$started_at <- as.POSIXct(May_2022_df$started_at)
+```
+### 2.3 Combine data into a single dataset
+```{r eval=FALSE}
+Total_df <- rbind(June_2021, July_2021, Aug_2021, Sept_2021, OCt_2021, Nov_2021, Dec_2021, Jan_2022, Feb_2022, Mar_2022, Apr_2022, May_2022)
+
+```
+
+## 3. Prepare dataset
+### 3.1 Calculate ride length
+Create column containing length of each ride in seconds. Change ride_length data type from factor to numeric so we can run calculations on the data.
+```{r eval=FALSE}
+Total_df <- Total_df %>%
+  add_column(ride_length = Total_df$ended_at - Total_df$started_at)
+
+# Convert ride_length from factor to numeric 
+is.factor(Total_df$ride_length)
+Total_df$ride_length <- as.numeric(Total_df$ride_length)
+is.numeric(Total_df$ride_length)
+```
+
+### 3.2 Add time/date columns
+Create day_of_week column and calculate the day of the week when each ride started, noting that 1 = Sunday and 7 = Saturday
+```{r eval=FALSE}
+Total_df <- Total_df %>%
+  add_column(day_of_week = wday(Total_df$started_at))
+```
+Add columns that list the hour, date, month, and year of each ride.
+```{r eval=FALSE}
+#Create a new column with start hour
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+Total_df$started_at <- as.character(Total_df$started_at)
+Total_df$time <- substrRight(Total_df$started_at, 8)
+Total_df$hour <- str_extract(Total_df$time, "\\d{2}")
+
+# Create date, month, and year columns
+Total_df$date <- as.Date(Total_df$started_at) 
+Total_df$month <- format(as.Date(Total_df$date), "%m")
+Total_df$day <- format(as.Date(Total_df$date), "%d")
+Total_df$year <- format(as.Date(Total_df$date), "%Y")
+```
+
+## 4 Cleaning
+
+### 4.1 Remove incomplete rows 
+Some rows may contain missing values - these rows should be removed from the dataset. Create a new version of the dataframe since data is being removed.
+```{r eval=FALSE}
+#Remove incomplete rows
+Total_cleaned <- Total_df[complete.cases(Total_df), ] 
+```
+
+### 4.2 Remove rows with negative and zero values
+Due to a human error or any technical problem, some rows can contain zero values and, therefore, should be removed. 
+```{r eval=FALSE}
+#Remove rows with zero values (there are none)
+Total_cleaned <- Total_cleaned[!(Total_cleaned$ride_id==0),]
+Total_cleaned <- Total_cleaned[!(Total_cleaned$rideable_type==0),]
+Total_cleaned <- Total_cleaned[!(Total_cleaned$started_at==0),]
+Total_cleaned <- Total_cleaned[!(Total_cleaned$ended_at==0),]
+Total_cleaned <- Total_cleaned[!(Total_cleaned$member_casual==0),]
+```
+It is also important to remove rows containing ride length with negative and zero values.
+```{r eval=FALSE}
+Total_cleaned <- Total_cleaned %>%
+  filter(!(ride_length<=0))
+```
+
+### 4.3 Remove irrelevant data
+This study will not take into account the geographical aspect of the data. Therefore, the columns containing station latitude, longitude, and station names will be removed. 
+This choice was partly influenced by a big weight of the dataset. After 8 columns being removed, it becomes faster to conduct any futher transformation and analysis.   
+```{r eval=FALSE}
+Total_cleaned <- Total_cleaned %>%   
+  select(-c(start_lat, start_lng, end_lat, end_lng, start_station_name, end_station_name, start_station_id, end_station_id))
+```
+The rows with ride length less than 60 seconds should also be removed. These observations were likely registered when riders changed their minds about the ride or checked if a bike was docked properly.
+```{r eval=FALSE}
+Total_cleaned <- Total_cleaned[!(Total_cleaned$ride_length<=60),]
+```
+
+### 4.3 Remove duplicates 
+```{r eval=FALSE}
+#Check if there are duplicates in ride_id column (there are none)
+Total_cleaned[duplicated(Total_cleaned$ride_id), ]
+```
+
+### 4.4 Remove strings of wrong length  
+The length of all the strings in a concrete column should be the same. If it is not the case, these rows should be checked.  
+```{r eval=FALSE}
+#Checking the length of ride_id 
+Un1 <- unique(Total_cleaned$ride_id)
+Un1 <- as.character(Un1)
+Un1 <- data.frame(Group=Un1, x=nchar(Un1))
+table(Un1$x) #All the strings have the same length
+
+#Checking the length of started_at
+Un2 <- unique(Total_cleaned$started_at)
+Un2 <- as.character(Un2)
+Un2 <- data.frame(Group=Un2, x=nchar(Un2))
+table(Un2$x) #There are some shorter strings
+```
+There are some strings that contain 10 symbols, and not 19 symbols as does the major part of the strings. The further inspections shows that the time component of the date/time observation is missing for all the month of March (03/2022). 
+Most of these short rows were already cleaned as their output for the ride length calculation gave 0. The rest giving value 23:00:00 is still present, and should be removed. 
+It is important to remember that it removes the month of March from the further analysis entirely.
+```{r eval=FALSE}
+# Removing all March observations
+Total_cleaned <- Total_cleaned[!(Total_cleaned$month==03),]
+
+#Checking the length of ended_at
+Un3 <- unique(Total_cleaned$ended_at)
+Un3 <- as.character(Un3)
+Un3 <- data.frame(Group=Un3, x=nchar(Un3))
+table(Un3$x) # All the rows have the same length
+```
+
+### 4.5 Remove docked bikes
+Let's see how many observations fall under each user type and bike type.
+```{r eval=FALSE}
+table(Total_cleaned$member_casual)
+table(Total_cleaned$rideable_type)
+```
+The observation above shows that there are 2 types of riders (casuals and members), and 3 bike types: classic, electric and docked. The docked one very likely refers to bikes that were taken away for maintenance purposes, therefore they should be removed from the further analysis.  
+```{r eval=FALSE}
+#Removing the docked bikes
+Total_cleaned <- Total_cleaned[!(Total_cleaned$rideable_type=="docked_bike"),]
+```
+
+### 4.6 Save the dataset
+```{r eval=FALSE}
+write.csv(Total_cleaned,"C:/Users/Asus/Desktop/Case Study 1/Cyclistic trip data/R\\Total_cleaned",row.names = FALSE)
+
+```
+
+
+
+
+
+
+
+
+
+
