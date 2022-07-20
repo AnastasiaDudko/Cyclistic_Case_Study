@@ -1,0 +1,30 @@
+---
+title: "About the task"
+author: "Anastasia Dudko"
+date: '2022-07-20'
+output: html_document
+---
+
+## Scenario
+An imaginary bike-share program, Cyclistic, is planning the future marketing program aimed at converting casual riders (customers who purchase single-ride or full-day passes) into annual members. In order to do that, the marketing analyst team needs to better understand how annual members and casual riders differ. 
+
+The director of marketing believes that maximizing the number of annual members will be key to future growth. The insights of this study will guide the next marketing program. Therefore, they are crucial for the appropriate program design which, if successful, can positively influence the company’s growth and income in the future. 
+
+Therefore, this project consists of the following tasks: 
+*	To analyze the previous 12 months of Cyclistic historical bike trip data.
+*	To identify trends and answer the question: **How do annual members and casual riders use Cyclistic bikes differently?** 
+*	To present the results followed by top three recommendations based on my analysis (how can the insights be used to design the program?)
+
+## About the company
+Cyclistic is a bike-share program that features more than 5,800 bicycles and 600 docking stations. Cyclistic sets itself apart by also offering reclining bikes, hand tricycles, and cargo bikes, making bike-share more inclusive to people with disabilities and riders who can’t use a standard two-wheeled bike. The majority of riders opt for traditional bikes; about 8% of riders use the assistive options. Cyclistic users are more likely to ride for leisure, but about 30% use them to commute to work each day.
+
+## Cyclistic trip data description
+Data source: https://divvy-tripdata.s3.amazonaws.com/index.html
+This is public data that has been made available by Motivate International Inc. under this [license] (https://ride.divvybikes.com/data-license-agreement). 
+The file name standard is “YYYYMM-divvy-tripdata” – for instance, the file “202205-divvy-tripdata” contains the data from May 2022.  
+Each file contains 13 columns, indicating ride id, bike type, date and time of start/end of bike ride; name, id, latitude and longitude for both start and end stations, and client type (member or casual).  	
+
+
+
+
+
