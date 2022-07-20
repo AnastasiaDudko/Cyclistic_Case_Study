@@ -1,0 +1,575 @@
+---
+title: "Report"
+author: "Anastasia Dudko"
+date: "14 07 2022"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+library(knitr)
+
+
+## Global options
+opts_chunk$set(echo=FALSE,
+               prompt=FALSE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE, 
+               results="hide")
+```
+# Report
+## How do annual members and casual riders use Cyclistic bikes differently?         
+## (And how the insights can be used to maximize the number of annual members?)
+
+## 1. Introduction. Data and methods’ description
+The data used for the case study consist of 12 csv files each representing one of 12 last months (from June 2021 to May 2022) of Cyclistic historical trip data.  This is public data that has been made available by Motivate International Inc. under this license (https://ride.divvybikes.com/data-license-agreement). It does not contain any personally identifiable information.
+
+Because of the large sizes of datasets (each csv. file contains between around 100,000 and 820,000 observations each), the R was used for the cleaning process, analysis and visualization. 
+
+The cleaning process followed the code provided in the “Cleaning Process” file. The 12 csv. files were merged into one dataset. Ride length of each ride was calculated, observations with less than 60 seconds and incomplete rows were removed. Observations from March 2022 were also removed due to the error occurred during the data registration. The dataset was verified for bias, duplicates, and then saved as “Total_cleaned.csv” file. 
+
+```{r}
+#Setting working derectory
+setwd("C:/Users/Asus/Desktop/Case Study 1/Cyclistic trip data/R")
+
+#Setting the environment
+library(lubridate)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(showtext)    # gives an access to a new font
+library(data.table)
+library(viridis)     # contains color schemes
+library(ggpubr)
+library(ggthemes)    # has a clean theme for ggplot2
+
+#Importing the cleaned dataset
+Total_cleaned <- read.csv("Total_cleaned.csv")
+
+# Add a new font that will be used in the all graphics
+font_add("Playfair", "C:/Users/Asus/Desktop/Case Study 1/Cyclistic trip data/R/PlayfairDisplay-Italic.ttf")
+showtext_auto()
+```
+
+## 2 Summary statistics
+```{r}
+# Creating function for mode
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+# Create a data frame with statistical values
+statistics <- Total_cleaned %>%
+  
+  group_by(
+    member_casual
+  ) %>%
+  
+  summarize(
+    ave_ride_length_mins = (mean(ride_length, na.rm = TRUE))/60,
+    mode_ride_length_mins = format((getmode(ride_length)/60)),
+    mode_day_of_week = getmode(day_of_week),
+    mode_month = getmode(month),
+    mode_time_of_day = getmode(hour), 
+    mode_bike_type = getmode(rideable_type),
+  ) 
+```
+
+```{r, results = "show"}
+kable(head(statistics))
+```
+The summary statistics shows that members’ most popular day is 3 (Tuesday), whereas casual riders are most active on 7 (Saturday). Both rider types prefer using classic bikes. 
+
+The members’ average ride length is significantly shorter. Let’s have a look on the mean ride length’s distribution over the week.
+
+
+## 3. Average ride time per day of the week
+```{r}
+#Create a data frame with average ride time per day of the week
+ave_t_day <- Total_cleaned %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, day_of_week) 
+
+# Change data type of some columns
+ave_t_day$average_duration <- as.numeric(ave_t_day$average_duration)
+ave_t_day$day_of_week <- as.character(ave_t_day$day_of_week)
+
+# Create the plot
+plt1 <- ggplot(ave_t_day)+
+  # Make custom panel grid
+  geom_hline(
+    aes(yintercept = y), 
+    data.frame(y = c(0:3) * 480),
+    color = "lightgrey"
+  ) +
+  # Adding bars
+  geom_col(
+    aes(
+      x = day_of_week,
+      y = average_duration,
+      fill = member_casual
+    ),
+    alpha = .9,
+    position = "dodge"
+  ) +
+  #Annotate custom scaling inside plot 
+  #Creating a white element that will allow other labels to be seen
+  annotate(
+    x = 7.8,
+    y = 0,
+    label = "8'",
+    geom = "text",
+    color = "white",
+  ) +
+  annotate(
+    x = 7.6,
+    y = 520,
+    label = "8'",
+    geom = "text",
+    color = "gray11",
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 7.6,
+    y = 1020,
+    label = "16'",
+    geom = "text",
+    color = "gray11",
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 7.6,
+    y = 1520,
+    label = "24'",
+    geom = "text",
+    color = "gray11",
+    family = "Playfair"
+  ) +
+  theme(
+    # Remove axis ticks and text
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    # Use gray text for hour labels
+    axis.text.x = element_text(color = "gray12"),
+    # Move the legend to the bottom
+    legend.position = "bottom",
+    legend.title = element_blank(),
+  ) +
+  scale_fill_hue(
+    labels = c("Casual Riders", "Member Riders"),
+  ) +
+  theme(
+    # Remove extra grid lines and make the background white
+    panel.background = element_rect(fill = "white", color = "white"),
+    panel.grid = element_blank(),
+    panel.grid.major.x = element_blank(),
+    # Set default color and font family for the text
+    text = element_text(color="gray12", family = "Playfair"),
+    plot.title = element_text(size = 18)
+  ) +
+  labs(title = "Average ride time per day of the week") +
+  scale_x_discrete(labels = c("Sunday","Monday",
+                              "Tuesday","Wednesday",
+                              "Thursday","Friday","Saturday"))
+```
+
+```{r plt1, results = "show"}
+plt1
+```
+The barplot above shows that the members’ mean ride is consistently shorter during all the week. The statistical exploration reveals that the members’ ride takes around 43% less time (~13 min vs ~23 min for casual users). This can mean that casual riders usually use bikes to make greater distances than members. 
+
+It is interesting that the members’ ride time is also more homogeneous through the week: the average difference between working day and weekend is ~2min, whereas casuals’ rides are ~6min longer on weekend. 
+This seems to confirm that Cyclistic users, at least casual riders, are more likely to ride for leisure.
+
+## 4 Number of trips per hour
+```{r eval=FALSE}
+# Creating a dataset containing number of trips per hour
+circular_bar_chart_data <- Total_cleaned%>%
+  
+  group_by(
+    hour,
+    member_casual
+  ) %>%
+  
+  mutate(
+    numtrips_0000s = (n()/1000)
+  ) %>%
+  
+  distinct(
+    hour, 
+    member_casual, 
+    numtrips_0000s
+  )
+
+#Adding an "h" for "hour" for labels
+circular_bar_chart_data$hour <- paste0(circular_bar_chart_data$hour, "h")
+
+# Making plot
+plt2 <- ggplot(circular_bar_chart_data) +
+  # Make custom panel grid
+  geom_hline(
+    aes(yintercept = y), 
+    data.frame(y = c(0:3) * 150),
+    color = "lightgrey"
+  ) +
+  # Adding bars
+  geom_col(
+    aes(
+      x = hour,
+      y = numtrips_0000s,
+      fill = member_casual
+    ), alpha = .9
+  ) +
+  # Lollipop shaft for each bar
+  geom_segment(
+    aes(
+      x = hour,
+      y = 0,
+      xend = hour,
+      yend = 450
+    ),
+    linetype = "dashed",
+    color = "gray10"
+  ) +
+  # Make it circular 
+  coord_polar(start = -0.135, direction = 1) +
+  # Annotate custom scaling inside plot 
+  annotate(
+    x = 1.5,
+    y = 180,
+    label = "150",
+    geom = "text",
+    color = "gray11",
+    angle = -6,
+    size = 3,
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 1.5,
+    y = 330,
+    label = "300",
+    geom = "text",
+    color = "gray11",
+    angle = -6,
+    size = 3,
+    family = "Playfair"
+  ) +
+  annotate(
+    x = 1.5,
+    y = 480,
+    label = "450 rides",
+    geom = "text",
+    color = "gray11",
+    angle = -6,
+    size = 3,
+    family = "Playfair"
+  ) +
+  # Scale y axis so bars don't start in the center
+  scale_y_continuous(
+    limits = c(-250, 550),
+    expand = c(0,0),
+    breaks = c(0, 150, 300, 450)
+  ) +
+  theme(
+    # Remove axis ticks and text
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    # Use gray text for hour labels
+    axis.text.x = element_text(color = "gray12"),
+    # Move the legend to the bottom
+    legend.position = "bottom",
+    legend.title = element_blank()
+  ) +
+  scale_fill_hue(
+    labels = c("Casual Riders", "Member Riders"),
+    ) +
+  theme(
+    # Remove extra grid lines and make the background white
+    panel.background = element_rect(fill = "white", color = "white"),
+    panel.grid = element_blank(),
+    panel.grid.major.x = element_blank(),
+    # Set default color and font family for the text
+    text = element_text(color="gray12", family = "Playfair"),
+    legend.text = element_text(size = 7)
+    ) 
+```
+```{r plt2, results = "show"}
+plt2  
+```
+The circular barplot above shows that the 17 h is the most popular hour for both members and casual riders. There is also a peak of member’s activity at 7 and 8 a.m. which, presumably, reflects the number of members that use Cyclistic platform for their daily work trip.
+
+The futher investigation revealed that the members’ ride time is also more homogeneous through the day, whereas casuals’ ride time is shorter in the morning at 5-8 a.m. and longer in the late morning/early afternoon. This can indicate that some casual riders also use bikes to go to work in the morning.  
+
+
+## 5.a Number of rides per day (overall)
+```{r eval=FALSE}
+
+# Change started_at string type 
+Total_cleaned$started_at <- as.POSIXct(
+  Total_cleaned$started_at, 
+  format = "%Y-%m-%d %H:%M:%S"
+)
+
+#Create a week column
+Total_cleaned$week <- format(
+  Total_cleaned$started_at,
+  "%W"
+)
+
+##Create data frame containing the number of rides by date 
+heatmap_data <- Total_cleaned %>%
+  
+  select(
+    date, 
+    day_of_week, 
+    week, 
+    year
+  ) %>%
+  
+  group_by(
+    date
+  ) %>%
+  
+  mutate(
+    numtrips = n()
+  ) %>%
+  
+  distinct(
+    date, 
+    .keep_all = TRUE
+  )
+
+# Change data type of some columns
+heatmap_data$week <- as.numeric(heatmap_data$week)
+heatmap_data$day_of_week <- as.character(heatmap_data$day_of_week)
+
+# Create a heat map 
+plt3 <- ggplot(heatmap_data, aes(x = week, y = day_of_week, fill = numtrips)) +
+  geom_tile(color="white", size=0.1) +
+ # Square tiles
+  coord_fixed() +
+ # Separate the heat maps by year
+  facet_wrap(
+    "year", 
+    ncol = 1
+  ) +
+  # Set the light theme 
+  theme_light() +
+  
+  # Remove any unnecessary labels 
+  theme(
+    axis.title = element_blank()
+  ) + 
+  # Chose a color palette
+  scale_fill_viridis(option = "E", name="Number of rides") + 
+
+# Reverse the y-axis so that the weekdays read vertically  
+  scale_y_discrete(limits = rev,
+      labels = c("Saturday","Friday","Thursday","Wednesday","Tuesday","Monday","Sunday")) +
+
+  #Add x-axis labels to show the months of the year
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(1, 52, length = 12),
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  
+  labs(title="Number of rides per day")+
+  theme(axis.ticks=element_blank()) +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(family = "Playfair"))+
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(strip.text = element_text(colour = "gray12")) +
+  guides(
+    fill = guide_colourbar(
+      barwidth = 7,
+      barheight = 0.7, title.position = "top",title.hjust = .5,))
+```
+
+```{r plt3, results = "show"}
+plt3
+```
+The heat map above shows the distribution of the total number of rides during the study period (excluding the month of March because of the data registration error).
+
+The heat map demonstrates that the summer months (~from May to September) are the period of the highest activity. There are also more rides on weekend than on working days.
+
+Let’s look at the difference between casual riders and members.
+
+## 5.b Number of rides per day (Members vs Casuals)
+```{r eval=FALSE}
+#Creating a dataset containing only Members' rides
+Total_cleaned_members <- Total_cleaned[Total_cleaned$member_casual == "member",]
+
+#Creating a dataset containing only Casuals' rides
+Total_cleaned_casuals <- Total_cleaned[Total_cleaned$member_casual == "casual",]
+
+##Create dataset for Members 
+heatmap_data_m <- Total_cleaned_members %>%
+  
+  select(
+    date, 
+    day_of_week, 
+    week, 
+    year
+  ) %>%
+  
+  group_by(
+    date
+  ) %>%
+  
+  mutate(
+    numtrips = n()
+  ) %>%
+  
+  distinct(
+    date, 
+    .keep_all = TRUE
+  )
+# Change data type 
+heatmap_data_m$week <- as.numeric(heatmap_data_m$week)
+heatmap_data_m$day_of_week <- as.character(heatmap_data_m$day_of_week)
+
+##Create dataset for Casuals
+heatmap_data_c <- Total_cleaned_casuals %>%
+  
+  select(
+    date, 
+    day_of_week, 
+    week, 
+    year
+  ) %>%
+  
+  group_by(
+    date
+  ) %>%
+  
+  mutate(
+    numtrips = n()
+  ) %>%
+  
+  distinct(
+    date, 
+    .keep_all = TRUE
+  )
+# Change data type
+heatmap_data_c$week <- as.numeric(heatmap_data_c$week)
+heatmap_data_c$day_of_week <- as.character(heatmap_data_c$day_of_week)
+
+# Create a heat map for Members 
+p_m <- ggplot(heatmap_data_m, aes(x = week, y = day_of_week, fill = numtrips)) +
+  geom_tile(color="white", size=0.1) +
+  coord_fixed() +
+  facet_wrap(
+    "year", 
+    ncol = 1
+  ) +
+  theme_light() +
+  theme(
+    axis.title = element_blank()
+  ) + 
+  scale_fill_viridis(option = "E",name="Number of rides") + 
+  scale_y_discrete(limits = rev,
+                   labels = c("Saturday","Friday","Thursday","Wednesday","Tuesday","Monday","Sunday")) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(1, 52, length = 12),
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  labs(title="Member Riders")+
+  theme(axis.ticks=element_blank()) +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(family = "Playfair"))+
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(strip.text = element_text(colour = "gray12")) +
+  guides(
+    fill = guide_colourbar(
+      barwidth = 3.5,
+      barheight = 0.35, title.position = "top",title.hjust = .5,))
+
+# Create a heat map for Casuals 
+p_c <- ggplot(heatmap_data_c, aes(x = week, y = day_of_week, fill = numtrips)) +
+  geom_tile(color="white", size=0.1) +
+  coord_fixed() +
+  facet_wrap(
+    "year", 
+    ncol = 1
+  ) +
+  theme_light() +
+  theme(
+    axis.title = element_blank()
+  ) + 
+  scale_fill_viridis(option = "E", name="Number of rides") + 
+  scale_y_discrete(limits = rev,
+                   labels = c("Saturday","Friday","Thursday","Wednesday","Tuesday","Monday","Sunday")) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(1, 52, length = 12),
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  
+  labs(title="Casual Riders")+
+  theme(axis.ticks=element_blank()) +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(family = "Playfair"))+
+  theme(strip.background = element_rect(fill = "white")) +
+  theme(strip.text = element_text(colour = "gray12")) +
+  guides(
+    fill = guide_colourbar(
+      barwidth = 3.5,
+      barheight = 0.35, title.position = "top",title.hjust = .5,))
+
+
+
+# Combine the two heat maps into one 
+plt4 <- ggarrange(
+  p_m, 
+  p_c, 
+  ncol = 1, 
+  nrow = 2,
+  common.legend = TRUE, 
+  legend = "bottom"
+) 
+```
+
+```{r plt4, results = "show"}
+plt4
+```
+The heat maps’ comparison confirms summer time to be the most active period for both rider types.
+
+However, members are using bikes more constantly during the year, even during January and February, whereas the period of activity of the casual riders is shorter.
+
+Members use bikes slightly more during the week days, whereas casual riders are much more active during the weekends. 
+
+## Summary
+*	The members’ mean ride time is around 43% shorter (~13 min vs ~23 min for casual users) 
+*	-> This can mean that casuals are constantly making greater distances than members
+*	Members’ ride time is more homogeneous through the week: the average difference between working day and weekend is ~2min, whereas casuals’ rides are ~6min longer on weekend
+*	Members’ ride time is also more homogeneous through the day (whereas casuals’ ride time is shorter in the morning at 5-8 a.m. and longer in the late morning/early afternoon). 
+*	Members are making more rides during the working day (with picks in the morning at 7-8 a.m. and at 4-6 p.m.), casuals use bikes more usually on weekend
+*	Members are using bikes more constantly during the year, casuals ride more often during summer time
+
+
+## Recommendations
+The casual riders are people that are aware of and familiar with Cyclistic – and yet, they do not become members. That means that using bikes often enough to buy the annual membership is somehow not so convenient for them. What can be our options to persuade them?
+
+1) The analysis revealed that the casual riders are much more active during the weekend and summer months, using the bikes for leisure trips. They are unlikely to become full annual members. One of the solution could be **to create an annual membership only for weekends or only for summer months.** 
+
+2) There are some casual riders who are using Cyclistic to make their work trip in the morning. However, their average ride time (and, therefore, distance) is always longer than members’ ride time and distance. This can mean that casual riders live further from their trip destination, and do not feel comfortable enough to take bikes every working day. The company could **promote the use of electrical bikes (by marketing campaign and/or discount for this bike type) which makes greater distance faster and easier than a classic model.** 
+
+3) The consequences of the global climate change such as heat waves and glaciers’ melting are particularly frequent this summer. Considering this, the company could **emphasize the importance of using bikes to lower the carbon emissions.** 
+
+
+
+
+
+
+
+
