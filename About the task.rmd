@@ -20,7 +20,7 @@ Cyclistic is a bike-share program that features more than 5,800 bicycles and 600
 
 ## Cyclistic trip data description
 Data source: https://divvy-tripdata.s3.amazonaws.com/index.html
-This is public data that has been made available by Motivate International Inc. under this [license] (https://ride.divvybikes.com/data-license-agreement). 
+This is public data that has been made available by Motivate International Inc. under this [license](https://ride.divvybikes.com/data-license-agreement). 
 The file name standard is “YYYYMM-divvy-tripdata” – for instance, the file “202205-divvy-tripdata” contains the data from May 2022.  
 Each file contains 13 columns, indicating ride id, bike type, date and time of start/end of bike ride; name, id, latitude and longitude for both start and end stations, and client type (member or casual).  	
 
